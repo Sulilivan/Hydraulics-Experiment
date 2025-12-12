@@ -133,8 +133,14 @@ function calc() {
         let pB_ = rho_water * g * hb_m / 10000; // N/cm²
         let pB = p0 + pB_;
         // 油密度
-        let rho_oil = (f2-f1)!==0 ? (p0/((f2-f1)/100*g)) : '';
-        rho_oil = rho_oil ? (rho_oil/10).toFixed(3) : '';// g/cm³
+        let delta_f = f2 - f1;
+        let rho_oil = '';
+        if (delta_f !== 0) {
+            // p0 单位 N/cm²，delta_f 单位 cm，g 单位 m/s²
+            // rho_oil = p0 * 100 / (g * delta_f)  (kg/m³)
+            let rho_oil_kgm3 = p0 * 10000 / (g * delta_f/100);
+            rho_oil = (rho_oil_kgm3 / 1000).toFixed(3); // g/cm³
+        }
         // 行头
         let rowName = i<=3 ? `p₀&gt;pₐ-${i}` : `p₀&lt;pₐ-${i-3}`;
         html += `<tr><td>${rowName}</td><td>${df21}</td><td>${df43}</td><td>${df65}</td><td>${ha}</td><td>${hb}</td><td>${p0.toFixed(3)}</td><td>${pA_.toFixed(3)}</td><td>${pA.toFixed(3)}</td><td>${pB_.toFixed(3)}</td><td>${pB.toFixed(3)}</td><td>${rho_oil}</td></tr>`;
