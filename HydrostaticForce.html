@@ -2,7 +2,7 @@
 <html lang="zh-cn">
 <head>
     <meta charset="UTF-8">
-    <title>净水总压力实验计算</title>
+    <title>静水总压力实验计算</title>
     <style>
         table, th, td {
             border: 1px solid #333;
@@ -13,8 +13,17 @@
         th {
             background: #f0f0f0;
         }
-        input[type="number"] {
+        input[type="text"] {
             width: 70px;
+        }
+        /* 去除number类型的样式 */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
         }
     </style>
 </head>
@@ -22,9 +31,9 @@
 <h2>净水总压力实验数据输入与计算</h2>
 <form id="expForm" autocomplete="off">
     <h3>2、有关常数</h3>
-    <label>天平臂距离 L₀ (cm)：<input name="L0" type="number" step="0.01" required></label>
-    <label>扇形体垂直距离 L (cm)：<input name="L" type="number" step="0.01" required></label>
-    <label>扇形体宽度 b (cm)：<input name="b" type="number" step="0.01" required></label>
+    <label>天平臂距离 L₀ (cm)：<input name="L0" type="text" required></label>
+    <label>扇形体垂直距离 L (cm)：<input name="L" type="text" required></label>
+    <label>扇形体宽度 b (cm)：<input name="b" type="text" required></label>
     <span>扇形体平面高度 H₀ (cm)：<b>10.00</b>（已设为常数）</span>
     <br><br>
     <h3>3、量测记录表格</h3>
@@ -43,35 +52,35 @@
         <tr>
             <td rowspan="3">三角形分布</td>
             <td>1</td>
-            <td><input name="H_tri_1" type="number" step="0.01" required></td>
-            <td><input name="m_tri_1" type="number" step="0.01" required></td>
+            <td><input name="H_tri_1" type="text" required></td>
+            <td><input name="m_tri_1" type="text" required></td>
         </tr>
         <tr>
             <td>2</td>
-            <td><input name="H_tri_2" type="number" step="0.01" required></td>
-            <td><input name="m_tri_2" type="number" step="0.01" required></td>
+            <td><input name="H_tri_2" type="text" required></td>
+            <td><input name="m_tri_2" type="text" required></td>
         </tr>
         <tr>
             <td>3</td>
-            <td><input name="H_tri_3" type="number" step="0.01" required></td>
-            <td><input name="m_tri_3" type="number" step="0.01" required></td>
+            <td><input name="H_tri_3" type="text" required></td>
+            <td><input name="m_tri_3" type="text" required></td>
         </tr>
         <!-- 梯形分布 -->
         <tr>
             <td rowspan="3">梯形分布</td>
             <td>1</td>
-            <td><input name="H_trap_1" type="number" step="0.01" required></td>
-            <td><input name="m_trap_1" type="number" step="0.01" required></td>
+            <td><input name="H_trap_1" type="text" required></td>
+            <td><input name="m_trap_1" type="text" required></td>
         </tr>
         <tr>
             <td>2</td>
-            <td><input name="H_trap_2" type="number" step="0.01" required></td>
-            <td><input name="m_trap_2" type="number" step="0.01" required></td>
+            <td><input name="H_trap_2" type="text" required></td>
+            <td><input name="m_trap_2" type="text" required></td>
         </tr>
         <tr>
             <td>3</td>
-            <td><input name="H_trap_3" type="number" step="0.01" required></td>
-            <td><input name="m_trap_3" type="number" step="0.01" required></td>
+            <td><input name="H_trap_3" type="text" required></td>
+            <td><input name="m_trap_3" type="text" required></td>
         </tr>
     </table>
     <br>
@@ -113,16 +122,16 @@ function calc() {
     for(let i=1;i<=3;i++) {
         let H = +form.elements[`H_tri_${i}`].value; // cm
         let m = +form.elements[`m_tri_${i}`].value; // g
-        // 作用点距底部距离 e = H0 + 1/3*(H-H0)
-        let e = (H0 + (H - H0) / 3).toFixed(2);
+        // 作用点距底部距离 e = H / 3
+        let e = (H / 3).toFixed(2);
         // 作用点距支点垂直距离 L1 = L - e
         let L1 = (L - e).toFixed(2);
         // 实测力矩 M0 = m·g·L0 (Ncm)
-        let M0 = (m * gcm * L0).toFixed(2);
+        let M0 = (m * g * L0 * 0.001).toFixed(2);
         // 实测静水压力 P实 = M0 / L1 (N)
         let P_exp = (L1 != 0 ? (M0 / L1).toFixed(2) : '');
-        // 理论静水压力 P理 = 0.5 * rho * g * b * (H-H0)^2 (cm制，需转m)
-        let H_m = (H - H0) / 100;
+        // 理论静水压力 P理 = 0.5 * rho * g * b * H^2 (cm制，需转m)
+        let H_m = H / 100;
         let b_m = b / 100;
         let P_theory = (0.5 * rho * g * b_m * H_m * H_m).toFixed(2);
         // 相对值
@@ -142,18 +151,21 @@ function calc() {
     for(let i=1;i<=3;i++) {
         let H = +form.elements[`H_trap_${i}`].value; // cm
         let m = +form.elements[`m_trap_${i}`].value; // g
-        let h = H - H0; // 上部三角形高
         let H0_cm = H0;
-        let denom = 0.5 * H0_cm * H0_cm + H0_cm * h;
-        let numer = (1/3)*Math.pow(h,3) + 0.5*H0_cm*h*h + 0.5*H0_cm*H0_cm*h;
-        // 作用点距底部距离 e = (numer/denom) + H0
-        let e = (denom !== 0 ? (numer / denom + H0_cm).toFixed(2) : '');
+        let h = H - H0_cm; // 上部三角形高
+        // 梯形分布水压力作用点 e = (a/3) * (2*h1 + h2)/(h1 + h2)
+        // a = H0_cm, h1 = H - H0_cm, h2 = H
+        let a = H0_cm;
+        let h1 = H - H0_cm;
+        let h2 = H;
+        let denominator = h1 + h2;
+        let e = (denominator !== 0 ? (a / 3 * (2 * h1 + h2) / denominator).toFixed(2) : '');
         // 作用点距支点垂直距离 L1 = L - e
         let L1 = (L - e).toFixed(2);
         // 实测力矩 M0 = m·g·L0 (Ncm)
-        let M0 = (m * gcm * L0).toFixed(2);
+        let M0 = (m * g * L0 * 0.001).toFixed(2);
         // 理论静水压力 P理 = 0.5 * rho * g * b * H0^2 + rho * g * b * H0 * h
-        let H0_m = H0 / 100;
+        let H0_m = H0_cm / 100;
         let h_m = h / 100;
         let b_m = b / 100;
         let P_theory = (0.5 * rho * g * b_m * H0_m * H0_m + rho * g * b_m * H0_m * h_m).toFixed(2);
@@ -176,6 +188,40 @@ function calc() {
     html += rows + '</table>';
     document.getElementById('result').innerHTML = html;
 }
+// 回车和方向键控制输入框切换
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = Array.from(document.querySelectorAll('input[type="text"]'));
+    inputs.forEach((input, idx) => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let next = inputs[idx + 1];
+                if (next) next.focus();
+            }
+            // 上下左右方向键
+            if (['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                // 计算表格结构：每行2个输入，常数区3个输入
+                let constLen = 3; // 常数区3个
+                let rowLen = 2; // 每行2个输入
+                let totalRows = 6; // 6行数据
+                let baseIdx = constLen; // 数据区起始
+                let pos = idx - baseIdx;
+                if (idx < baseIdx) return; // 常数区不处理方向键
+                if (pos >= 0 && pos < totalRows * rowLen) {
+                    let row = Math.floor(pos / rowLen);
+                    let col = pos % rowLen;
+                    let nextIdx = idx;
+                    if (e.key === 'ArrowRight' && col < rowLen - 1) nextIdx = idx + 1;
+                    if (e.key === 'ArrowLeft' && col > 0) nextIdx = idx - 1;
+                    if (e.key === 'ArrowDown' && row < totalRows - 1) nextIdx = idx + rowLen;
+                    if (e.key === 'ArrowUp' && row > 0) nextIdx = idx - rowLen;
+                    if (inputs[nextIdx]) inputs[nextIdx].focus();
+                }
+            }
+        });
+    });
+});
 </script>
 </body>
 </html>
