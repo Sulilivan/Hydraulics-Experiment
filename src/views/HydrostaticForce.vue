@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2>静水总压力实验数据输入与计算</h2>
+    <h2>净水总压力实验数据输入与计算</h2>
     <form id="expForm" autocomplete="off">
       <h3>2、有关常数</h3>
       <label>天平臂距离 L₀ (cm)：<input name="L0" type="text" required></label>
@@ -66,7 +66,6 @@
 <script lang="ts">
 export default {
   mounted() {
-    // 路由切换后直接初始化逻辑
     this.handleDomLoaded();
   },
   methods: {
@@ -89,7 +88,6 @@ export default {
         const rho = 1000;
         const g = 9.81;
         const H0 = 10.00;
-        // TS修复: 断言为 any 以避免类型检查报错
         const form = document.getElementById("expForm") as any;
         const L0 = +form.elements["L0"].value;
         const L = +form.elements["L"].value;
@@ -111,14 +109,27 @@ export default {
         for(let i=1;i<=3;i++) {
           let H = +form.elements[`H_tri_${i}`].value;
           let m = +form.elements[`m_tri_${i}`].value;
-          let e = (H / 3).toFixed(2);
-          let L1 = (L - e).toFixed(2);
-          let M0 = (m * g * L0 * 0.001).toFixed(2);
-          let P_exp = (L1 != 0 ? (M0 / L1).toFixed(2) : '');
+          
+          // 修复: 中间变量保持 number 类型，最后展示时再 toFixed
+          let e_val = H / 3;
+          let e = e_val.toFixed(2);
+          
+          let L1_val = L - e_val;
+          let L1 = L1_val.toFixed(2);
+          
+          let M0_val = m * g * L0 * 0.001;
+          let M0 = M0_val.toFixed(2);
+          
+          let P_exp_val = L1_val !== 0 ? M0_val / L1_val : 0;
+          let P_exp = L1_val !== 0 ? P_exp_val.toFixed(2) : '';
+          
           let H_m = H / 100;
           let b_m = b / 100;
-          let P_theory = (0.5 * rho * g * b_m * H_m * H_m).toFixed(2);
-          let y = (P_theory != 0 ? (P_exp / P_theory).toFixed(3) : '');
+          let P_theory_val = 0.5 * rho * g * b_m * H_m * H_m;
+          let P_theory = P_theory_val.toFixed(2);
+          
+          let y = P_theory_val !== 0 ? (P_exp_val / P_theory_val).toFixed(3) : '';
+          
           rows += `<tr>
               <td>三角形分布</td>
               <td>${i}</td>
@@ -139,15 +150,28 @@ export default {
           let h1 = H - H0_cm;
           let h2 = H;
           let denominator = h1 + h2;
-          let e = (denominator !== 0 ? (a / 3 * (2 * h1 + h2) / denominator).toFixed(2) : '');
-          let L1 = (L - e).toFixed(2);
-          let M0 = (m * g * L0 * 0.001).toFixed(2);
+          
+          let e_val = denominator !== 0 ? (a / 3 * (2 * h1 + h2) / denominator) : 0;
+          let e = denominator !== 0 ? e_val.toFixed(2) : '';
+          
+          let L1_val = L - e_val;
+          let L1 = L1_val.toFixed(2);
+          
+          let M0_val = m * g * L0 * 0.001;
+          let M0 = M0_val.toFixed(2);
+          
           let H0_m = H0_cm / 100;
           let h_m = h / 100;
           let b_m = b / 100;
-          let P_theory = (0.5 * rho * g * b_m * H0_m * H0_m + rho * g * b_m * H0_m * h_m).toFixed(2);
-          let P_exp = (L1 != 0 ? (M0 / L1).toFixed(2) : '');
-          let y = (P_theory != 0 ? (P_exp / P_theory).toFixed(3) : '');
+          
+          let P_theory_val = 0.5 * rho * g * b_m * H0_m * H0_m + rho * g * b_m * H0_m * h_m;
+          let P_theory = P_theory_val.toFixed(2);
+          
+          let P_exp_val = L1_val !== 0 ? M0_val / L1_val : 0;
+          let P_exp = L1_val !== 0 ? P_exp_val.toFixed(2) : '';
+          
+          let y = P_theory_val !== 0 ? (P_exp_val / P_theory_val).toFixed(3) : '';
+          
           rows += `<tr>
               <td>梯形分布</td>
               <td>${i}</td>
@@ -215,6 +239,7 @@ input[type="text"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
+  appearance: none; /* 修复 CSS 警告 */
   margin: 0;
 }
 input[type="number"] {

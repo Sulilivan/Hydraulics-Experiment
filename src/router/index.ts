@@ -3,11 +3,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import HydrostaticPressure from '../views/HydrostaticPressure.vue'
 import HydrostaticForce from '../views/HydrostaticForce.vue'
+import ReynoldsExperiment from '../views/ReynoldsExperiment.vue'
 
 const routes = [
   { path: '/', component: HomeView },
   { path: '/pressure', component: HydrostaticPressure },
-  { path: '/force', component: HydrostaticForce }
+  { path: '/force', component: HydrostaticForce },
+  { path: '/reynolds', component: ReynoldsExperiment }
 ]
 
 const router = createRouter({

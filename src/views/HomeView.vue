@@ -9,6 +9,10 @@
       <router-link to="/force" class="nav-item">
         <button>2. 静水总压力实验</button>
       </router-link>
+
+      <router-link to="/reynolds" class="nav-item">
+        <button>3. 雷诺实验</button>
+      </router-link>
     </div>
   </div>
 </template>
