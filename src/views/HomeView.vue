@@ -13,6 +13,10 @@
       <router-link to="/reynolds" class="nav-item">
         <button>3. 雷诺实验</button>
       </router-link>
+
+      <router-link to="/friction" class="nav-item">
+        <button>4. 沿程阻力系数实验</button>
+      </router-link>
     </div>
   </div>
 </template>

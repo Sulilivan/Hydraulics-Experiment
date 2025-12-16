@@ -4,12 +4,14 @@ import HomeView from '../views/HomeView.vue'
 import HydrostaticPressure from '../views/HydrostaticPressure.vue'
 import HydrostaticForce from '../views/HydrostaticForce.vue'
 import ReynoldsExperiment from '../views/ReynoldsExperiment.vue'
+import FrictionFactorExperiment from '../views/FrictionFactorExperiment.vue'
 
 const routes = [
   { path: '/', component: HomeView },
   { path: '/pressure', component: HydrostaticPressure },
   { path: '/force', component: HydrostaticForce },
-  { path: '/reynolds', component: ReynoldsExperiment }
+  { path: '/reynolds', component: ReynoldsExperiment },
+  { path: '/friction', component: FrictionFactorExperiment }
 ]
 
 const router = createRouter({
