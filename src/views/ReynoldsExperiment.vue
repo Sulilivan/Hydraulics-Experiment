@@ -113,11 +113,49 @@
         </tbody>
       </table>
     </div>
+
+    <!-- 4. 绘图分析 (新增) -->
+    <div v-if="results.length > 0" class="section chart-section">
+      <h3>4. 绘图分析 (lg hf - lg v 关系曲线)</h3>
+      <div class="chart-container">
+        <v-chart class="chart" :option="chartOption" autoresize />
+      </div>
+      <div class="analysis-result" v-if="slopes.laminar || slopes.turbulent">
+        <p><strong>分析结果：</strong></p>
+        <p v-if="slopes.laminar">层流区 (Re &lt; 2300) 斜率 m1 = {{ slopes.laminar }} (理论值 ≈ 1.0)</p>
+        <p v-if="slopes.turbulent">紊流区 (Re &gt; 2300) 斜率 m2 = {{ slopes.turbulent }} (理论值 1.75 ~ 2.0)</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, reactive } from 'vue'
+
+// --- 新增 ECharts 引入 ---
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { ScatterChart, LineChart } from 'echarts/charts'
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  MarkLineComponent
+} from 'echarts/components'
+
+use([
+  CanvasRenderer,
+  ScatterChart,
+  LineChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  MarkLineComponent
+])
+// -----------------------
 
 // 常数接口
 interface Constants {
@@ -149,6 +187,10 @@ interface ResultRow {
   lgv: string
   lghf: string
   re: string
+  // 新增原始数值用于绘图
+  rawLgv?: number
+  rawLghf?: number
+  rawRe?: number
 }
 
 // 状态定义
@@ -168,6 +210,12 @@ const tableData = ref<DataRow[]>([
 ])
 
 const results = ref<ResultRow[]>([])
+// 新增图表配置和斜率状态
+const chartOption = ref({})
+const slopes = reactive({
+  laminar: '',
+  turbulent: ''
+})
 
 // 计算属性：断面面积 (cm²)
 const area = computed(() => {
@@ -232,6 +280,39 @@ const onKeydown = (e: KeyboardEvent, r: number, c: number) => {
   }
 }
 
+// 线性回归辅助函数：计算斜率和截距 y = kx + b
+const linearRegression = (data: number[][]) => {
+  const n = data.length
+  if (n < 2) return null
+
+  let sumX = 0
+  let sumY = 0
+  let sumXY = 0
+  let sumXX = 0
+
+  for (let i = 0; i < n; i++) {
+    const point = data[i]
+    // 添加空值检查
+    if (!point) continue
+    
+    const x = point[0]
+    const y = point[1]
+    
+    // 确保 x 和 y 都是有效数字
+    if (x === undefined || y === undefined) continue
+
+    sumX += x
+    sumY += y
+    sumXY += x * y
+    sumXX += x * x
+  }
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
+  const intercept = (sumY - slope * sumX) / n
+
+  return { slope, intercept }
+}
+
 // 方法：计算
 const calc = () => {
   if (!constants.d || constants.t === null || !constants.nu) {
@@ -243,6 +324,10 @@ const calc = () => {
   const A = area.value
   const v_nu = constants.nu // 直接使用输入的运动粘度
   const d = constants.d
+
+  // 用于绘图的数据点
+  const laminarPoints: number[][] = [] // 层流点
+  const turbulentPoints: number[][] = [] // 紊流点
 
   results.value = tableData.value.map(row => {
     // 检查必填项
@@ -277,6 +362,16 @@ const calc = () => {
     const lgvVal = vVal > 0 ? Math.log10(vVal) : 0
     const lghfVal = dhVal > 0 ? Math.log10(dhVal) : 0
 
+    // 收集绘图数据 (排除无效数据)
+    if (vVal > 0 && dhVal > 0) {
+      const point = [lgvVal, lghfVal]
+      if (reVal < 2300) {
+        laminarPoints.push(point)
+      } else {
+        turbulentPoints.push(point)
+      }
+    }
+
     return {
       qAvg: qAvgVal.toFixed(2),
       v: vVal.toFixed(2),
@@ -284,9 +379,98 @@ const calc = () => {
       hf: dhVal.toFixed(2), // 沿程水头损失 hf 等于测压管高差 Δh
       lgv: vVal > 0 ? lgvVal.toFixed(3) : '-',
       lghf: dhVal > 0 ? lghfVal.toFixed(3) : '-',
-      re: reVal.toFixed(2) // 雷诺数保留两位小数
+      re: reVal.toFixed(2), // 雷诺数保留两位小数
+      rawLgv: lgvVal,
+      rawLghf: lghfVal,
+      rawRe: reVal
     }
   })
+
+  // --- 生成图表配置 ---
+  
+  // 1. 计算回归线
+  const lamReg = linearRegression(laminarPoints)
+  const turbReg = linearRegression(turbulentPoints)
+
+  slopes.laminar = lamReg ? lamReg.slope.toFixed(3) : ''
+  slopes.turbulent = turbReg ? turbReg.slope.toFixed(3) : ''
+
+  // 生成回归线的两端点用于绘制直线
+  const getLinePoints = (points: number[][], reg: any) => {
+    if (!reg || points.length < 2) return []
+    // 找到x的最小值和最大值
+    // 使用 filter 过滤掉 undefined，并使用类型谓词 (x is number) 告诉 TS 结果是纯数字数组
+    const xs = points.map(p => p[0]).filter((x): x is number => typeof x === 'number')
+    
+    if (xs.length === 0) return []
+
+    const minX = Math.min(...xs)
+    const maxX = Math.max(...xs)
+    return [
+      [minX, reg.slope * minX + reg.intercept],
+      [maxX, reg.slope * maxX + reg.intercept]
+    ]
+  }
+
+  const lamLine = getLinePoints(laminarPoints, lamReg)
+  const turbLine = getLinePoints(turbulentPoints, turbReg)
+
+  chartOption.value = {
+    title: {
+      text: 'lg hf - lg v 关系曲线',
+      left: 'center'
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' }
+    },
+    legend: {
+      data: ['层流点', '紊流点', '层流拟合', '紊流拟合'],
+      bottom: 0
+    },
+    xAxis: {
+      type: 'value',
+      name: 'lg v',
+      nameLocation: 'middle',
+      nameGap: 30,
+      scale: true
+    },
+    yAxis: {
+      type: 'value',
+      name: 'lg hf',
+      scale: true
+    },
+    series: [
+      {
+        name: '层流点',
+        type: 'scatter',
+        data: laminarPoints,
+        itemStyle: { color: '#5470c6' }
+      },
+      {
+        name: '紊流点',
+        type: 'scatter',
+        data: turbulentPoints,
+        itemStyle: { color: '#91cc75' }
+      },
+      {
+        name: '层流拟合',
+        type: 'line',
+        data: lamLine,
+        showSymbol: false,
+        itemStyle: { color: '#5470c6' },
+        lineStyle: { type: 'dashed' }
+      },
+      {
+        name: '紊流拟合',
+        type: 'line',
+        data: turbLine,
+        showSymbol: false,
+        itemStyle: { color: '#91cc75' },
+        lineStyle: { type: 'dashed' }
+      }
+    ]
+  }
 }
 </script>
 
@@ -371,6 +555,29 @@ input[type="number"] {
 }
 
 .result-section {
+  background-color: #f9f9f9;
+}
+
+/* 新增样式 */
+.chart-section {
+  background-color: #fff;
+}
+
+.chart-container {
+  height: 400px;
+  width: 100%;
+}
+
+.chart {
+  height: 100%;
+  width: 100%;
+}
+
+.analysis-result {
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   background-color: #f9f9f9;
 }
 </style>
