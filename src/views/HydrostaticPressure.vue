@@ -155,7 +155,6 @@ export default {
                 }
                 if (['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key)) {
                     e.preventDefault();
-                    let rowLen = 6;
                     let colLen = 6;
                     let totalRows = 6;
                     let faIdx = 0, fbIdx = 1;

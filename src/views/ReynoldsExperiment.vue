@@ -60,13 +60,13 @@
           <tbody>
             <tr v-for="(row, index) in tableData" :key="index">
               <td>{{ index + 1 }}</td>
-              <td><input v-model.number="row.h1" type="number" step="0.01"></td>
-              <td><input v-model.number="row.h2" type="number" step="0.01"></td>
+              <td><input :id="`cell-${index}-0`" @keydown="onKeydown($event, index, 0)" v-model.number="row.h1" type="number" step="0.01"></td>
+              <td><input :id="`cell-${index}-1`" @keydown="onKeydown($event, index, 1)" v-model.number="row.h2" type="number" step="0.01"></td>
               <td class="read-only">{{ row.dh || '-' }}</td>
-              <td><input v-model.number="row.m1" type="number" step="0.01"></td>
-              <td><input v-model.number="row.m2" type="number" step="0.01"></td>
-              <td><input v-model.number="row.t1" type="number" step="0.01"></td>
-              <td><input v-model.number="row.t2" type="number" step="0.01"></td>
+              <td><input :id="`cell-${index}-2`" @keydown="onKeydown($event, index, 2)" v-model.number="row.m1" type="number" step="0.01"></td>
+              <td><input :id="`cell-${index}-3`" @keydown="onKeydown($event, index, 3)" v-model.number="row.m2" type="number" step="0.01"></td>
+              <td><input :id="`cell-${index}-4`" @keydown="onKeydown($event, index, 4)" v-model.number="row.t1" type="number" step="0.01"></td>
+              <td><input :id="`cell-${index}-5`" @keydown="onKeydown($event, index, 5)" v-model.number="row.t2" type="number" step="0.01"></td>
               <td class="read-only">{{ row.q1 || '-' }}</td>
               <td class="read-only">{{ row.q2 || '-' }}</td>
               <td>
@@ -183,6 +183,53 @@ const addRow = () => {
 // 方法：删除行
 const removeRow = (index: number) => {
   tableData.value.splice(index, 1)
+}
+
+// 键盘导航处理
+const onKeydown = (e: KeyboardEvent, r: number, c: number) => {
+  const maxR = tableData.value.length - 1
+  const maxC = 5 // 列索引 0-5 (h1, h2, m1, m2, t1, t2)
+
+  let nextR = r
+  let nextC = c
+
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
+    // 阻止默认行为（如滚动、光标移动），改为切换焦点
+    if (e.key === 'Enter' || e.key === 'ArrowRight') {
+      e.preventDefault()
+      if (c < maxC) {
+        nextC++
+      } else if (r < maxR) {
+        nextR++
+        nextC = 0
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      if (c > 0) {
+        nextC--
+      } else if (r > 0) {
+        nextR--
+        nextC = maxC
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (r < maxR) {
+        nextR++
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (r > 0) {
+        nextR--
+      }
+    }
+
+    if (nextR !== r || nextC !== c) {
+      const el = document.getElementById(`cell-${nextR}-${nextC}`)
+      if (el) {
+        el.focus()
+      }
+    }
+  }
 }
 
 // 方法：计算
