@@ -1,6 +1,6 @@
 <template>
   <div class="home-container">
-    <h1>水力学实验系统</h1>
+    <h1>水力学实验数据实时计算与可视化系统</h1>
     <div class="nav-links">
       <router-link to="/pressure" class="nav-item">
         <button>1. 静水压强实验</button>
